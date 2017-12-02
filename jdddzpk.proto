@@ -1,0 +1,568 @@
+import "base.proto";
+// 三个老k游戏协议
+// 2200~2399之间协议段
+// 本游戏协议必须指定目的服务器ID
+
+/* 九江麻将游戏结构体定义 */
+enum JDDDZGameState
+{
+    JDDDZ_GAME_IDLE=1;             // 空闲，游戏逻辑未开始，等待玩家准备。
+    JDDDZ_GAME_DICE_BANK=2;        // 摇筛子(庄)
+    JDDDZ_GAME_SEND=3;             // 发牌
+    JDDDZ_GAME_DICE_KING=4;        // 摇筛子(精)
+	JDDDZ_GAME_CALL=5;             // 叫地主
+	JDDDZ_GAME_QIANG=6;            // 抢地主
+    JDDDZ_GAME_PLAY= 7;            // 游戏
+    JDDDZ_GAME_END = 8;            // 游戏结束
+}
+
+enum JDDDZSEND_TYPE
+{
+    JDDDZ_NORMAL_SEND=1;   // 正常
+    JDDDZ_RECOME_SEND=2;   // 重连
+}
+
+
+/*游戏状态*/
+message ProJDDDZGameStatusResponse
+{
+    enum MSGID {ID=2200;}
+    optional JDDDZGameState status=2;     // 状态
+}
+
+/*游戏的底分*/
+message ProJDDDZGameDeskInfoResponse
+{
+    enum MSGID {ID=2201;}
+    optional int32 CellScore=2;     // 底分
+}
+
+/*通知准备*/
+message ProJDDDZGameReadyNotify
+{
+    enum MSGID {ID=2202;}
+    optional int32 seat=2;          // 准备座位
+    optional int32 time=3;          // 准备时间
+}
+
+/*请求准备*/
+message ProJDDDZGameReadyRequest
+{
+    enum MSGID {ID=2203;}
+    optional int32 seat=2;          // 准备座位
+}
+
+/*请求准备通知*/
+message ProJDDDZGameReadyResponse
+{
+    enum MSGID {ID=2204;}
+    optional int32 seat=2;          // 准备座位
+	optional bool  isMingPai=3;     // 是否明牌(重连的时候会用到)
+	optional int32  MingPaiTag=4;
+}
+
+/*通知游戏开始了客户端做一些清理准备*/
+message ProJDDDZGameStart
+{
+    enum MSGID {ID=2205;}
+    optional int32 bankerseat=2;     // 庄家座位号
+    optional int32 gamecount=3;      // 当前的局数
+    optional int32 outCardtimes=4;      // 出牌次数
+}
+/*选庄和选精的都用这个协议，通过状态来判断*/
+/*通知掷骰子*/
+message ProJDDDZGameDiceNotify
+{
+    enum MSGID {ID=2206;}
+    optional int32 seat=2;          // 座位号
+    optional int32 time=3;          // 时间
+    optional int32 dicecount = 4;   // 第几次摇筛子
+}
+
+/*请求掷骰子,客户端已经操作了*/
+message ProJDDDZGameDiceRequest
+{
+    enum MSGID {ID=2207;}
+    optional int32 seat=2;          // 座位号
+    optional int32 dicecount = 3;   // 第几次摇筛子
+}
+
+/*广播掷骰子*/
+message ProJDDDZGameDiceResult
+{
+    enum MSGID {ID=2208;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 result=3;        // 筛子结果
+    optional int32 dicecount = 4;   // 第几次摇筛子
+}
+
+/*发牌*/
+message ProJDDDZGameSendMahs
+{
+    enum MSGID {ID=2209;}
+    optional int32 seat=2;          // 座位号
+    repeated JDDDZMahList cbHandCardData = 3;    // 手牌
+    repeated int32 mahscount=4;     // 所有人的牌数量
+    optional int32 cbLeftCount=5;  //  剩余牌数量
+	optional int32 offlineTag=6;   // 断线重连标志
+}
+
+enum JDDDZKIGN_TYPE
+{
+    JDDDZ_KING_UP    =1;   // 上精
+    JDDDZ_KING_HUITOU=2;   // 回头一笑
+    JDDDZ_KING_MAILEI=3;   // 埋雷
+}
+
+/*精数据*/
+message ProJDDDZGameKingData
+{
+    enum MSGID {ID=2210;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 mahs=3;          // 牌数据 第一个表示上精 第二个表示下精
+    repeated int32 downKingScore=4; // 下翻精得分
+    repeated int32 kingcount = 5;   // 下翻正精数量
+    repeated int32 viceking = 6;    // 下翻副精数量
+    optional JDDDZSEND_TYPE notify_type=7 [default=JDDDZ_NORMAL_SEND];  // 通知类型
+    optional JDDDZKIGN_TYPE king_type=8[default=JDDDZ_KING_UP];    // 数据类型
+    repeated int32 cbChongGuang = 9;     // 冲关
+    repeated int32 cbBaWangKing = 10;     // 霸王精
+}
+
+
+/*出牌*/
+message ProJDDDZGameOutMahsResponse
+{
+    enum MSGID {ID=2211;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 outMahs=3;       // 出牌数据
+    repeated int32 handmahs=4;      // 出牌人的手牌，每次这里同步下
+    optional int32 cardCount = 5;   // 剩余手中的排数
+    optional int32 cardType = 6;    // 出牌类型
+	repeated int32 noChangeMahs = 7;
+}
+
+/*时钟*/
+message ProJDDDZGameTimerPower
+{
+    enum MSGID {ID=2212;}
+    optional int32 seat=2;          // 座位号
+    optional int32 time=3;          // 时间
+    optional int32 outcardTime=4;     //出牌次数
+	optional int32 lastCardType=5;   // 上一次出牌的牌型
+	optional int32 lastPoint = 6;    // 上一次出牌的点数
+}
+
+/*操作提示*/
+message ProJDDDZGameOperateNotify
+{
+    enum MSGID {ID=2213;}
+    optional int32 resumeSeat=2;    // 还原用户
+    optional int32 ActionMask=3;    // 动作掩码
+    optional int32 ActionCard=4;    // 动作扑克
+    optional int32 time = 5;        // 操作时间
+    optional int32 operateseat=6;   // 操作座位
+}
+
+/*操作命令*/
+message ProJDDDZGameOperateResult
+{
+    enum MSGID {ID=2214;}
+    optional int32 wOperateUser=2;    // 操作用户
+    optional int32 wProvideUser=3;    // 供应用户
+    optional int32 wOperateCode=4;    // 操作代码
+    optional int32 cbOperateCard=5;   // 操作扑克
+    repeated int32 handmahs=6;        // 手牌
+    optional int32 handcount=7;       // 数量
+}
+message ProJDDDZGameOperateRequest
+{
+    enum MSGID {ID=2215;}
+    optional int32 seat=2;              // 操作用户
+    optional int32 wOperateCode=3;      // 供应用户
+    optional int32 cbOperateCard=4;     // 操作代码
+}
+
+/*托管*/
+message ProJDDDZGameTrust
+{
+    enum MSGID {ID=2216;}
+    optional int32 seat=2;              // 座位号
+    optional bool  isTrust=3;           // 是否托管
+}
+message ProJDDDZGameOutMahRequest
+{
+    enum MSGID {ID=2217;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 outMahs=3;     // 出牌数据
+	repeated int32 noChangeMahs = 4;
+}
+// 抓牌
+message ProJDDDZGameCatchCard           
+{
+    enum MSGID {ID=2218;}
+    optional int32 seat=2;          // 座位号
+    optional int32 cbCardData=3;    // 扑克数据
+    optional int32 wActionMask=4;  //  动作掩码
+    optional bool  cbIsNotGang=5;  //  是否杠牌
+    optional int32 cbLeftCount=6;  //  剩余牌数量
+}
+
+// 游戏结束
+message JDDDZMahList
+{
+    repeated int32 Mahs = 1;
+}
+
+message JDDDZScoreList
+{
+    repeated int32 roundScore = 1;
+}
+
+message JDDDZAwardList
+{
+    optional int32 seat = 1;
+    repeated int32 CardsData = 2;
+    optional int32 awardScore = 3;
+}
+
+message ProJDDDZGameEnd
+{
+    enum MSGID {ID=2219;}
+    optional int32 lGameTax=2;           // 税收
+
+    repeated int32 cbChongGuang = 3;     // 冲关
+    repeated int32 cbBaWangKing = 4;     // 霸王精
+    optional int32 wProvideUser = 5;     // 供应用户
+    optional int32 cbChiHuCard = 6;      // 供应扑克
+    repeated int32 dwChiHuKind = 7;      // 胡牌类型
+    repeated int32 dwChiHuRight = 8;     // 胡牌类型
+
+    repeated int32 lTotaslGameScore = 9;       // 游戏总得分
+    repeated int32 lCurrentGameScore = 10;     // 当前局得分的
+    repeated int32 lCurrentPointScore = 11;    // 捡分
+    repeated int32 lAttachScore = 12;          // 其他附加分
+
+    repeated JDDDZMahList cbHandCardData = 13;    // 手牌(最后亮牌用)
+    repeated JDDDZAwardList cbAwardCardData = 14;   // 胡牌分
+    repeated int32     lOnlyWinScore=15;         // 输赢的得分(谁先出完牌,或者捡分达到一定分数)
+
+    optional bool   bRoundEnd=16;        // 这一轮是否结束了(控制是否显示分享按钮)
+    repeated int32  lHuiTouScore=17;     // 回头一笑的得分
+    optional bool   bZhuangWin=18;             //庄是否赢 
+    repeated int32 cbJiangMaCardData = 19;    // 奖码(最后亮牌用)
+    repeated JDDDZScoreList detailedScores = 20;
+}
+
+message ProJDDDZGameQuickSoundRequest
+{
+    enum MSGID {ID=2220;}
+    
+    optional int32 desk_id=2;
+    optional int32 seat_id=3;
+    optional int32 sound_id = 4;    // 语音ID序号
+    optional bytes text=5;          // 聊天内容
+}
+
+// 服务器发送给客户端快速语音
+message ProJDDDZGameQuickSoundResponse
+{
+    enum MSGID {ID=2221;}
+    
+    optional int32 desk_id=2;
+    optional int32 seat_id=3;
+    optional int32 sound_id=4;
+    optional bytes text=5;          // 聊天内容
+}
+
+// 发送丢弃的牌 重连的时候会用到
+message ProJDDDZGameSendDiscardMahs
+{
+    enum MSGID {ID=2222;}
+    optional int32 seat_id=2;
+    repeated JDDDZMahList cbCardData = 3;    // 手牌
+    optional int32 deskCount=4;         // 牌桌剩余牌数量
+	repeated int32 outCardCount=5;		// 出牌次数
+}
+
+message JDDDZWeaveItem
+{
+    optional int32 weaveKind = 1;
+    optional int32 centercard = 2;
+    optional int32 provideUser = 3;
+    optional int32 cardsize = 4;
+}
+message JDDDZWeaveItems
+{
+    repeated JDDDZWeaveItem items = 1;
+}
+// 发送吃碰杠的牌 重连的时候会用到
+message ProJDDDZGameSendActionMahs
+{
+    enum MSGID {ID=2223;}
+    optional int32 seat_id=2;
+    repeated JDDDZWeaveItems weaves = 3;    // 手牌
+}
+
+enum JDDDZBROKEN_TYPE
+{
+    JDDDZ_BT_MASTER_QUIT=0;       // 房间退出(游戏没有开始过)
+    JDDDZ_BT_USER_QUIT=1;        //  用户退出(游戏没有开始过)
+    JDDDZ_BT_BROKEN=2;           //  普通解散
+    
+}
+// 申请解散游戏
+message ProJDDDZGameBrokenRequest
+{
+    enum MSGID {ID=2224;}
+    optional int32 seat_id=2;
+    optional JDDDZBROKEN_TYPE type=3;
+    optional int32 time=4;          // 对话框显示的倒计时时间 单位秒
+}
+
+enum JDDDZBROKEN_OPERATE
+{
+    JDDDZ_BO_DISAGREE=0;   // 拒绝
+    JDDDZ_BO_AGREE=1;      // 同意
+}
+
+// 操作申请
+message ProJDDDZGameBrokenOperate
+{
+    enum MSGID {ID=2225;}
+    optional int32 seat_id=2;
+    optional JDDDZBROKEN_OPERATE result=3[default=JDDDZ_BO_DISAGREE];      // 操作结果
+}
+enum JDDDZBROKEN_CODE
+{
+    JDDDZ_BC_SUCCESS=0;            // 解散成功
+    JDDDZ_BC_DISAGREE=1;          // 有人不同意解散
+    JDDDZ_BC_QUIT_SUCCESS=2;      // 退出成功
+    JDDDZ_BC_EXCEPTION=3;         // 数据异常 解散
+}
+// 游戏解散
+message ProJDDDZGameBrokenNotify
+{
+    enum MSGID {ID=2226;}
+    optional int32 seat_id=2;             // 当有人不同意解散时 才需要处理这个字段
+    optional JDDDZBROKEN_CODE operate_code=3[default=JDDDZ_BC_SUCCESS];
+
+}
+
+// 游戏规则配置
+message ProJDDDZGameRuleConfig
+{
+    enum MSGID{ID=2227;}
+    optional int32 game_round=1;        // 游戏局数
+    optional int32 need_card=2;         // 需要房卡数量
+    optional bool  have_bottom_king=3;  // 是否下翻精
+    optional bool  have_mai_lei=4;      // 是否埋雷
+    optional bool  hava_hui_tou=5;      // 是否回头一笑
+    optional int32 nMasterSeat=6;       // 规则设置着座位(也就是房主了)
+    optional int32 current_game_count=7;// 当前的游戏局数 S->C有用  C->S不需要这个参数
+    optional bool  have_jianma=8;      // 是否奖码
+    optional int32 nChongguanNum=9;       // 冲关个数
+    optional bool  bbawangfanbei=10;      // 是否霸王翻倍
+    optional int32 nPlayerNum =11;			// 玩家人数
+	optional bytes sRoomNum=12;      // 房号
+    optional bytes sPlayTime=13;      // 游戏时间
+	optional int32 nselfSeat=14;       // 自己座位
+	optional bool  bJingDian=15;       // 是否经典模式
+	optional bool  bMagicCard=16;       // 是否赖子玩法
+	optional bool  bMasterThebe=17;       // 是否房主叫分
+}
+
+// 游戏解散状态广播
+message ProJDDDZGameBrokenStatus
+{
+    enum MSGID{ID=2228;}
+    optional int32 broken_seat=1;       // 解散申请者
+    repeated bool  broken_status=2;     // 状态服务端座位0开始 true表示同意 false 表示默认未选择
+    optional int32 left_time=3;         // 剩余时间倒计时(单位:秒)
+}
+
+// 游戏奖分数据
+message ProJDDDZGameDataResp
+{
+    enum MSGID{ID=2229;}
+    repeated int32  total_score = 1;     // 游戏的总分,重连的时候会用到
+    optional int32  type  = 2;           // 分值类型
+}
+
+
+
+// 请求发送录音内容
+message ProJDDDZGameRecordRequest
+{
+    enum MSGID {ID=2230;}
+    optional int32 seat_id=1;
+    optional bytes url=2;                   //  语音地址
+}
+
+// 录音URL广播给其他玩家
+message ProJDDDZGameRecordResponse
+{
+    enum MSGID {ID=2231;}
+    optional int32 seat_id=1;
+    optional bytes url=2;                   // 语音地址
+}
+
+// 报告经纬坐标
+message ProJDDDZGameUserLocationRequest
+{
+    enum MSGID {ID=2232;}
+    optional int32  seat_id=1;              //  座位号
+    optional double dwlongitude=2;          //  经度
+    optional double dwlatitude=3;           //  纬度
+    optional bytes  strDistrict=4;          //  区
+    optional bytes  strStreetName=5;        //  道路名
+}
+
+//同步牌数据//九江麻将新增的,在不发财和杠牌的时候需要显示
+message ProJDDDZGameSyncCardResponse
+{
+    enum MSGID {ID=2233;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 handmahs=3;      // 出牌人的手牌，每次这里同步下
+}
+
+//监听判断玩家状态
+message ProJDDDZGameUserPhoneStatusRequest
+{
+    enum MSGID {ID=2234;}
+    optional int32 seat_id=1;              // 座位号
+    optional int32 userstatus = 2;         // 玩家状态
+}
+
+//庄家投降
+message ProJDDDZGameUserGiveUpRequest
+{
+    enum MSGID {ID=2235;}
+    optional int32 seat_id=1;              // 座位号
+}
+
+
+message ProJDDDZGameUserHintRequest
+{
+    enum MSGID {ID=2236;}
+}
+
+//提示
+message ProJDDDZGameUserHintResponse
+{
+    enum MSGID {ID=2237;}
+    optional int32 lenth=1;                 // 牌的张数
+    repeated int32 outMahs=2;               // 提示出的牌
+}
+
+//叫分
+message ProJDDDZGameUserCallScoreResponse
+{
+    enum MSGID {ID=2238;}
+    optional int32 seat=1;         		// 座位号
+	optional int32 usercallscore = 2;   // 当前叫分
+}
+
+//叫分响应
+message ProJDDDZGameUserCallScoreRequest
+{
+    enum MSGID {ID=2239;}
+    optional int32 seat=1;          		// 座位号
+	optional int32 usercallscore = 2;       // 玩家叫分   小于0为不叫
+}
+
+//通知叫地主
+message ProJDDDZGameCallNotify
+{
+    enum MSGID {ID=2244;}
+    optional int32 seat=1;          // 座位号
+	optional int32 maxCallScore=2;          // 当前最高叫分
+}
+
+//通知抢地主
+message ProJDDDZGameQiangNotify
+{
+    enum MSGID {ID=2245;}
+    optional int32 seat=1;          // 座位号
+}
+
+//叫地主通知
+message ProJDDDZGameUserCallLandlordResponse
+{
+    enum MSGID {ID=2240;}
+	optional int32 iscallandlord = 1;   // 当前叫地主
+	optional int32 score = 2;            //底分
+	optional int32 landlordSeat = 3;   // 地主座位
+	optional int32 seat=4;          		// 座位号
+	optional bool isSoundCall=5;       // 是否播放声音
+}
+
+//叫地主请求
+message ProJDDDZGameUserCallLandlordRequest
+{
+    enum MSGID {ID=2241;}
+    optional int32 seat=1;          		// 座位号
+	optional int32 iscallandlord = 2;       // 玩家叫地主  
+}
+
+//抢地主通知
+message ProJDDDZGameUserQinagLandlordResponse
+{
+    enum MSGID {ID=2242;}
+	optional int32 isQiangLandlord = 1;   // 当前抢地主
+	optional int32 score = 2;            //底分
+	optional int32 landlordSeat = 3;   // 地主座位
+	optional int32 seat=4;          		// 座位号
+}
+
+//抢地主请求
+message ProJDDDZGameUserQiangLandlordRequest
+{
+    enum MSGID {ID=2243;}
+    optional int32 seat=1;          		// 座位号
+	optional int32 isQiangLandlord = 2;       // 玩家抢地主  
+}
+
+//发最后三张地主牌
+message ProJDDDZGameSendLastCard
+{
+	enum MSGID {ID = 2246;}
+    optional int32 seat=1;          // 座位号
+    repeated JDDDZMahList cbHandCardData=2;    // 手牌
+	repeated int32 lastmahs=3;      // 地主牌
+	optional int32 laizi=4;         // 赖子牌
+	optional bool  isReCome=5;     // 是否重连
+}
+
+//明牌请求
+message ProJDDDZGameUserMingPaiRequest
+{
+	enum MSGID {ID = 2247;}
+    optional int32 seat=1;          // 座位号
+    optional bool  isMingPai=2;     // 是否明牌
+	optional int32 beilv=3;           // 倍数
+}
+
+//明牌通知
+message ProJDDDZGameUserMingPaiResponse
+{
+	enum MSGID {ID = 2248;}
+    optional int32 seat=1;          // 座位号
+    optional bool  isMingPai=2;     // 是否明牌
+	optional int32 score = 3;       //底分
+	optional int32 mingtag=4;     // 明牌的标志
+}
+
+//通知明牌
+message ProJDDDZGameMingNotify
+{
+    enum MSGID {ID=2249;}
+    optional int32 seat=1;          // 座位号
+	optional int32 tag=2;           // 通知标志
+	optional float time=3;          // 时间
+}
+message ProJDDDZGameStartAgain
+{
+    enum MSGID {ID=2250;}
+}
+

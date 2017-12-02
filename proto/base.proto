@@ -1,0 +1,66 @@
+package messages;
+// 基础信息
+
+// 设备类型
+enum DeviceType
+{
+    DEVICE_IPHONE=1;                // iPhone设备
+    DEVICE_IPAD=2;                  // iPad设备
+    DEVICE_ANDROID_PHONE=3;         // Android Phone设备
+    DEVICE_ANDROID_PAD=4;
+    DEVICE_WIN_PHONE=5;
+    DEVICE_WIN_PC=6;
+    DEVICE_WIN_PAD=7;
+    DEVICE_OTHER=99;
+}
+
+// 应用商城类型
+enum MarketType
+{
+    MARKET_APPLE_STORE=100;               // 苹果应用市场
+    MARKET_APPLE_ENTERPRISE=200;          // 苹果企业版本（自我升级）
+    
+    MARKET_ANDROID_PHONE=300;             // Android 手机平台官方
+    MARKET_ANDROID_PHONE_TENCET=301;      // Android 应用宝平台
+    MARKET_ANDROID_PHONE_360=302;         // Android 360平台
+    MARKET_ANDROID_PHONE_BAIDU=303;       // Android 百度平台
+    MARKET_ANDROID_PHONE_91=304;
+    
+    MARKET_ANDROID_PAD=400;
+    MARKET_WIN_PHONE=500;
+    MARKET_WIN_PC=600;
+    MARKET_WIN_PAD=700;
+    
+    MARKET_OTHER=9900;
+}
+
+// 用户状态
+enum UserState
+{
+    USER_NONE=0;                    // 没有状态, 不可以访问
+    USER_IDLE=1;                    // 进入了房间没有坐下
+    USER_SEAT_HOLD=2;               // 占位，还没有切换到游戏界面或游戏客户端还没启动起来。
+    USER_SIT=3;                     // 坐上了游戏桌（已切换到游戏界面或客户端也已经启动起来了)
+    USER_READY=4;                   // 准备状态
+    USER_WATCH=5;                   // 旁观游戏
+    USER_OFFLINE=20;                // 用户游戏中离线(游戏中状态)
+    USER_PLAY=21;                   // 用户游戏中状态(游戏中状态)
+}
+
+enum DeskState
+{
+    DESK_EMPTY=1;   //桌子没有玩家
+    DESK_IDLE=2;    //桌子有玩家，但还没有开始游戏
+    DESK_FULL=3;    //桌子上做满玩家，但游戏还没开始
+    DESK_PALY=4;    //桌子游戏中
+}
+
+message SocketContext
+{
+    optional int32 connectsrv_id=2;
+    optional bytes client_ip=3;
+    optional bytes session_id=4;
+    optional int64 client_request_time=5;
+    optional int64 server_request_time=6;
+    
+}

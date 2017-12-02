@@ -1,0 +1,472 @@
+import "base.proto";
+// 三个老k游戏协议
+// 2200~2399之间协议段
+// 本游戏协议必须指定目的服务器ID
+
+/* 九江麻将游戏结构体定义 */
+enum GPGameState
+{
+    GP_GAME_IDLE=1;             // 空闲，游戏逻辑未开始，等待玩家准备。
+    GP_GAME_DICE_BANK=2;        // 摇筛子(庄)
+    GP_GAME_SEND=3;             // 发牌
+    GP_GAME_DICE_KING=4;        // 摇筛子(精)
+    GP_GAME_PLAY= 5;            // 游戏
+    GP_GAME_END = 6;            // 游戏结束
+}
+
+enum GPSEND_TYPE
+{
+    GP_NORMAL_SEND=1;   // 正常
+    GP_RECOME_SEND=2;   // 重连
+}
+
+
+/*游戏状态*/
+message ProGPGameStatusResponse
+{
+    enum MSGID {ID=2200;}
+    optional GPGameState status=2;     // 状态
+}
+
+/*游戏的底分*/
+message ProGPGameDeskInfoResponse
+{
+    enum MSGID {ID=2201;}
+    optional int32 CellScore=2;     // 底分
+}
+
+/*通知准备*/
+message ProGPGameReadyNotify
+{
+    enum MSGID {ID=2202;}
+    optional int32 seat=2;          // 准备座位
+    optional int32 time=3;          // 准备时间
+}
+
+/*请求准备*/
+message ProGPGameReadyRequest
+{
+    enum MSGID {ID=2203;}
+    optional int32 seat=2;          // 准备座位
+}
+
+/*请求准备通知*/
+message ProGPGameReadyResponse
+{
+    enum MSGID {ID=2204;}
+    optional int32 seat=2;          // 准备座位
+}
+
+/*通知游戏开始了客户端做一些清理准备*/
+message ProGPGameStart
+{
+    enum MSGID {ID=2205;}
+    optional int32 bankerseat=2;     // 庄家座位号
+    optional int32 gamecount=3;      // 当前的局数
+    optional int32 outCardtimes=4;      // 出牌次数
+}
+/*选庄和选精的都用这个协议，通过状态来判断*/
+/*通知掷骰子*/
+message ProGPGameDiceNotify
+{
+    enum MSGID {ID=2206;}
+    optional int32 seat=2;          // 座位号
+    optional int32 time=3;          // 时间
+    optional int32 dicecount = 4;   // 第几次摇筛子
+}
+
+/*请求掷骰子,客户端已经操作了*/
+message ProGPGameDiceRequest
+{
+    enum MSGID {ID=2207;}
+    optional int32 seat=2;          // 座位号
+    optional int32 dicecount = 3;   // 第几次摇筛子
+}
+
+/*广播掷骰子*/
+message ProGPGameDiceResult
+{
+    enum MSGID {ID=2208;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 result=3;        // 筛子结果
+    optional int32 dicecount = 4;   // 第几次摇筛子
+}
+
+/*发牌*/
+message ProGPGameSendMahs
+{
+    enum MSGID {ID=2209;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 mahs=3;          // 牌数据
+    repeated int32 mahscount=4;     // 所有人的牌数量
+    optional int32 cbLeftCount=5;  //  剩余牌数量
+	optional int32 magicCardLogicValue=6;  //魔法牌逻辑值
+	optional bool  bRecome=7;
+}
+
+enum GPKIGN_TYPE
+{
+    GP_KING_UP    =1;   // 上精
+    GP_KING_HUITOU=2;   // 回头一笑
+    GP_KING_MAILEI=3;   // 埋雷
+}
+
+/*精数据*/
+message ProGPGameKingData
+{
+    enum MSGID {ID=2210;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 mahs=3;          // 牌数据 第一个表示上精 第二个表示下精
+    repeated int32 downKingScore=4; // 下翻精得分
+    repeated int32 kingcount = 5;   // 下翻正精数量
+    repeated int32 viceking = 6;    // 下翻副精数量
+    optional GPSEND_TYPE notify_type=7 [default=GP_NORMAL_SEND];  // 通知类型
+    optional GPKIGN_TYPE king_type=8[default=GP_KING_UP];    // 数据类型
+    repeated int32 cbChongGuang = 9;     // 冲关
+    repeated int32 cbBaWangKing = 10;     // 霸王精
+}
+
+
+/*出牌*/
+message ProGPGameOutMahsResponse
+{
+    enum MSGID {ID=2211;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 outMahs=3;       // 出牌数据
+    repeated int32 handmahs=4;      // 出牌人的手牌，每次这里同步下
+    optional int32 cardCount = 5;   // 剩余手中的排数
+    optional int32 cardType = 6;    // 出牌类型
+	optional int32 seriesFlag = 7;    // 顺子标志
+	optional int32 seriesNums = 8;    // 连续个数
+	optional int32 point = 9;    // 逻辑牌值
+}
+
+/*时钟*/
+message ProGPGameTimerPower
+{
+    enum MSGID {ID=2212;}
+    optional int32 seat=2;          // 座位号
+    optional int32 time=3;          // 时间
+    optional int32 outcardTime=4;     //出牌次数
+}
+
+/*操作提示*/
+message ProGPGameOperateNotify
+{
+    enum MSGID {ID=2213;}
+    optional int32 resumeSeat=2;    // 还原用户
+    optional int32 ActionMask=3;    // 动作掩码
+    optional int32 ActionCard=4;    // 动作扑克
+    optional int32 time = 5;        // 操作时间
+    optional int32 operateseat=6;   // 操作座位
+}
+
+/*操作命令*/
+message ProGPGameOperateResult
+{
+    enum MSGID {ID=2214;}
+    optional int32 wOperateUser=2;    // 操作用户
+    optional int32 wProvideUser=3;    // 供应用户
+    optional int32 wOperateCode=4;    // 操作代码
+    optional int32 cbOperateCard=5;   // 操作扑克
+    repeated int32 handmahs=6;        // 手牌
+    optional int32 handcount=7;       // 数量
+}
+message ProGPGameOperateRequest
+{
+    enum MSGID {ID=2215;}
+    optional int32 seat=2;              // 操作用户
+    optional int32 wOperateCode=3;      // 供应用户
+    optional int32 cbOperateCard=4;     // 操作代码
+}
+
+/*托管*/
+message ProGPGameTrust
+{
+    enum MSGID {ID=2216;}
+    optional int32 seat=2;              // 座位号
+    optional bool  isTrust=3;           // 是否托管
+}
+message ProGPGameOutMahRequest
+{
+    enum MSGID {ID=2217;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 outMahs=3;     // 出牌数据
+}
+// 抓牌
+message ProGPGameCatchCard           
+{
+    enum MSGID {ID=2218;}
+    optional int32 seat=2;          // 座位号
+    optional int32 cbCardData=3;    // 扑克数据
+    optional int32 wActionMask=4;  //  动作掩码
+    optional bool  cbIsNotGang=5;  //  是否杠牌
+    optional int32 cbLeftCount=6;  //  剩余牌数量
+}
+
+// 游戏结束
+message GPMahList
+{
+    repeated int32 Mahs = 1;
+}
+
+message GPScoreList
+{
+    repeated int32 roundScore = 1;
+}
+
+message GPAwardList
+{
+    optional int32 seat = 1;
+    repeated int32 CardsData = 2;
+    optional int32 awardScore = 3;
+}
+
+message ProGPGameEnd
+{
+    enum MSGID {ID=2219;}
+    optional int32 lGameTax=2;           // 税收
+
+    repeated int32 cbChongGuang = 3;     // 冲关
+    repeated int32 cbBaWangKing = 4;     // 霸王精
+    optional int32 wProvideUser = 5;     // 供应用户
+    optional int32 cbChiHuCard = 6;      // 供应扑克
+    repeated int32 dwChiHuKind = 7;      // 胡牌类型
+    repeated int32 dwChiHuRight = 8;     // 胡牌类型
+
+    repeated int32 lTotaslGameScore = 9;       // 游戏总得分
+    repeated int32 lCurrentGameScore = 10;     // 当前局得分的
+    repeated int32 lCurrentPointScore = 11;    // 捡分
+    repeated int32 lAttachScore = 12;          // 其他附加分
+
+    repeated GPMahList cbHandCardData = 13;    // 手牌(最后亮牌用)
+    repeated GPAwardList cbAwardCardData = 14;   // 胡牌分
+    repeated int32     lOnlyWinScore=15;         // 输赢的得分(谁先出完牌,或者捡分达到一定分数)
+
+    optional bool   bRoundEnd=16;        // 这一轮是否结束了(控制是否显示分享按钮)
+    repeated int32  lHuiTouScore=17;     // 回头一笑的得分
+    optional bool   bZhuangWin=18;             //庄是否赢 
+    repeated int32 cbJiangMaCardData = 19;    // 奖码(最后亮牌用)
+    repeated GPScoreList detailedScores = 20;
+	
+	optional int32 fangShuiSaet=21; //放水玩家座位
+}
+
+message ProGPGameQuickSoundRequest
+{
+    enum MSGID {ID=2220;}
+    
+    optional int32 desk_id=2;
+    optional int32 seat_id=3;
+    optional int32 sound_id = 4;    // 语音ID序号
+    optional bytes text=5;          // 聊天内容
+}
+
+// 服务器发送给客户端快速语音
+message ProGPGameQuickSoundResponse
+{
+    enum MSGID {ID=2221;}
+    
+    optional int32 desk_id=2;
+    optional int32 seat_id=3;
+    optional int32 sound_id=4;
+    optional bytes text=5;          // 聊天内容
+}
+
+// 发送丢弃的牌 重连的时候会用到
+message ProGPGameSendDiscardMahs
+{
+    enum MSGID {ID=2222;}
+    optional int32 seat_id=2;
+    repeated GPMahList cbCardData = 3;    // 手牌
+    optional int32 deskCount=4;         // 牌桌剩余牌数量
+}
+
+message GPWeaveItem
+{
+    optional int32 weaveKind = 1;
+    optional int32 centercard = 2;
+    optional int32 provideUser = 3;
+    optional int32 cardsize = 4;
+}
+message GPWeaveItems
+{
+    repeated GPWeaveItem items = 1;
+}
+// 发送吃碰杠的牌 重连的时候会用到
+message ProGPGameSendActionMahs
+{
+    enum MSGID {ID=2223;}
+    optional int32 seat_id=2;
+    repeated GPWeaveItems weaves = 3;    // 手牌
+}
+
+enum GPBROKEN_TYPE
+{
+    GP_BT_MASTER_QUIT=0;       // 房间退出(游戏没有开始过)
+    GP_BT_USER_QUIT=1;        //  用户退出(游戏没有开始过)
+    GP_BT_BROKEN=2;           //  普通解散
+    
+}
+// 申请解散游戏
+message ProGPGameBrokenRequest
+{
+    enum MSGID {ID=2224;}
+    optional int32 seat_id=2;
+    optional GPBROKEN_TYPE type=3;
+    optional int32 time=4;          // 对话框显示的倒计时时间 单位秒
+}
+
+enum GPBROKEN_OPERATE
+{
+    GP_BO_DISAGREE=0;   // 拒绝
+    GP_BO_AGREE=1;      // 同意
+}
+
+// 操作申请
+message ProGPGameBrokenOperate
+{
+    enum MSGID {ID=2225;}
+    optional int32 seat_id=2;
+    optional GPBROKEN_OPERATE result=3[default=GP_BO_DISAGREE];      // 操作结果
+}
+enum GPBROKEN_CODE
+{
+    GP_BC_SUCCESS=0;            // 解散成功
+    GP_BC_DISAGREE=1;          // 有人不同意解散
+    GP_BC_QUIT_SUCCESS=2;      // 退出成功
+    GP_BC_EXCEPTION=3;         // 数据异常 解散
+}
+// 游戏解散
+message ProGPGameBrokenNotify
+{
+    enum MSGID {ID=2226;}
+    optional int32 seat_id=2;             // 当有人不同意解散时 才需要处理这个字段
+    optional GPBROKEN_CODE operate_code=3[default=GP_BC_SUCCESS];
+
+}
+
+// 游戏规则配置
+message ProGPGameRuleConfig
+{
+    enum MSGID{ID=2227;}
+    optional int32 game_round=1;        // 游戏局数
+    optional int32 need_card=2;         // 需要房卡数量
+	
+    optional bool  have_MagicCard=3;  		// 是否赖子玩法  have_bottom_king
+    optional bool  have_RedPeach3FirstOut=4;      // 是否红桃三首发 have_mai_lei
+    optional bool  hava_MustOutCard=5;      // 是否回头一笑 hava_hui_tou
+	
+    optional int32 nMasterSeat=6;       // 规则设置着座位(也就是房主了)
+    optional int32 current_game_count=7;// 当前的游戏局数 S->C有用  C->S不需要这个参数
+	
+    optional bool  have_jianma=8;      // 是否奖码
+    optional int32 nChongguanNum=9;       // 冲关个数 nChongguanNum
+    optional bool  hava_BaoPei=10;      // 是否包赔
+	
+    optional int32 nPlayerNum =11;			// 玩家人数
+	optional bytes sRoomNum=12;      // 房号
+    optional bytes sPlayTime=13;      // 游戏时间
+}
+
+// 游戏解散状态广播
+message ProGPGameBrokenStatus
+{
+    enum MSGID{ID=2228;}
+    optional int32 broken_seat=1;       // 解散申请者
+    repeated bool  broken_status=2;     // 状态服务端座位0开始 true表示同意 false 表示默认未选择
+    optional int32 left_time=3;         // 剩余时间倒计时(单位:秒)
+}
+
+// 游戏奖分数据
+message ProGPGameDataResp
+{
+    enum MSGID{ID=2229;}
+    repeated int32  total_score = 1;     	// 游戏的总分,重连的时候会用到
+    optional int32  type  = 2;           	// 分值类型
+	optional int32  boomPlaayerSeat  = 3;  	// 炸弹得分玩家座位
+	optional bool  isboom  = 4;  			// 是否炸弹
+}
+
+
+
+// 请求发送录音内容
+message ProGPGameRecordRequest
+{
+    enum MSGID {ID=2230;}
+    optional int32 seat_id=1;
+    optional bytes url=2;                   //  语音地址
+}
+
+// 录音URL广播给其他玩家
+message ProGPGameRecordResponse
+{
+    enum MSGID {ID=2231;}
+    optional int32 seat_id=1;
+    optional bytes url=2;                   // 语音地址
+}
+
+// 报告经纬坐标
+message ProGPGameUserLocationRequest
+{
+    enum MSGID {ID=2232;}
+    optional int32  seat_id=1;              //  座位号
+    optional double dwlongitude=2;          //  经度
+    optional double dwlatitude=3;           //  纬度
+    optional bytes  strDistrict=4;          //  区
+    optional bytes  strStreetName=5;        //  道路名
+}
+
+//同步牌数据//九江麻将新增的,在不发财和杠牌的时候需要显示
+message ProGPGameSyncCardResponse
+{
+    enum MSGID {ID=2233;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 handmahs=3;      // 出牌人的手牌，每次这里同步下
+}
+
+//监听判断玩家状态
+message ProGPGameUserPhoneStatusRequest
+{
+    enum MSGID {ID=2234;}
+    optional int32 seat_id=1;              // 座位号
+    optional int32 userstatus = 2;         // 玩家状态
+}
+
+//庄家投降
+message ProGPGameUserGiveUpRequest
+{
+    enum MSGID {ID=2235;}
+    optional int32 seat_id=1;              // 座位号
+}
+
+
+message ProGPGameUserHintRequest
+{
+    enum MSGID {ID=2236;}
+}
+
+//提示
+message ProGPGameUserHintResponse
+{
+    enum MSGID {ID=2237;}
+    optional int32 lenth=1;                 // 牌的张数
+    repeated int32 outMahs=2;               // 提示出的牌
+}
+
+//叫分
+message ProGPGameUserCallScoreResponse
+{
+    enum MSGID {ID=2238;}
+    optional int32 seat=1;         		// 座位号
+	optional int32 usercallscore = 2;   // 当前叫分
+}
+
+//叫分响应
+message ProGPGameUserCallScoreRequest
+{
+    enum MSGID {ID=2239;}
+    optional int32 seat=1;          		// 座位号
+	optional int32 usercallscore = 2;       // 玩家叫分   小于0为不叫
+}
+

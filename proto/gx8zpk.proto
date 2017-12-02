@@ -1,0 +1,617 @@
+import "base.proto";
+// 贵溪八炸游戏协议
+// 2200~2399之间协议段
+// 本游戏协议必须指定目的服务器ID
+
+/* 贵溪八炸游戏结构体定义 */
+enum GX8ZGameState
+{
+    GX8Z_GAME_IDLE=1;            // 空闲，游戏逻辑未开始，等待玩家准备。
+    GX8Z_GAME_DICE_BANK=2;       // 摇筛子(庄)
+    GX8Z_GAME_SEND=3;            // 发牌
+    GX8Z_GAME_DATU=4;            // 打图通知
+    GX8Z_GAME_PLAY=6;            // 游戏
+    GX8Z_GAME_END=7;             // 游戏结束
+}
+
+enum GX8ZSEND_TYPE
+{
+    GX8Z_NORMAL_SEND=1;   // 正常
+    GX8Z_RECOME_SEND=2;   // 重连
+}
+
+
+/*游戏状态*/
+message ProGX8ZGameStatusResponse
+{
+    enum MSGID {ID=2200;}
+    optional GX8ZGameState status=2;     // 状态
+}
+
+/*游戏的底分*/
+message ProGX8ZGameDeskInfoResponse
+{
+    enum MSGID {ID=2201;}
+    optional int32 CellScore=2;     // 底分
+}
+
+/*通知准备*/
+message ProGX8ZGameReadyNotify
+{
+    enum MSGID {ID=2202;}
+    optional int32 seat=2;          // 准备座位
+    optional int32 time=3;          // 准备时间
+}
+
+/*请求准备*/
+message ProGX8ZGameReadyRequest
+{
+    enum MSGID {ID=2203;}
+    optional int32 seat=2;          // 准备座位
+}
+
+/*请求准备通知*/
+message ProGX8ZGameReadyResponse
+{
+    enum MSGID {ID=2204;}
+    optional int32 seat=2;          // 准备座位
+}
+
+/*通知游戏开始了客户端做一些清理准备*/
+message ProGX8ZGameStart
+{
+    enum MSGID {ID=2205;}
+    optional int32 bankerseat=2;     // 庄家座位号
+    optional int32 gamecount=3;      // 当前的局数
+    optional int32 outCardtimes=4;      // 出牌次数
+}
+/*选庄和选精的都用这个协议，通过状态来判断*/
+/*通知掷骰子*/
+message ProGX8ZGameDiceNotify
+{
+    enum MSGID {ID=2206;}
+    optional int32 seat=2;          // 座位号
+    optional int32 time=3;          // 时间
+    optional int32 dicecount = 4;   // 第几次摇筛子
+}
+
+/*请求掷骰子,客户端已经操作了*/
+message ProGX8ZGameDiceRequest
+{
+    enum MSGID {ID=2207;}
+    optional int32 seat=2;          // 座位号
+    optional int32 dicecount = 3;   // 第几次摇筛子
+}
+
+/*广播掷骰子*/
+message ProGX8ZGameDiceResult
+{
+    enum MSGID {ID=2208;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 result=3;        // 筛子结果
+    optional int32 dicecount = 4;   // 第几次摇筛子
+}
+
+/*发牌*/
+message ProGX8ZGameSendMahs
+{
+    enum MSGID {ID=2209;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 mahs=3;          // 牌数据
+    repeated int32 mahscount=4;     // 所有人的牌数量
+    optional int32 cbLeftCount=5;  //  剩余牌数量
+}
+
+enum GX8ZKING_TYPE
+{
+    GX8Z_KING_UP    =1;   // 上精
+    GX8Z_KING_HUITOU=2;   // 回头一笑
+    GX8Z_KING_MAILEI=3;   // 埋雷
+}
+
+/*精数据*/
+message ProGX8ZGameKingData
+{
+    enum MSGID {ID=2210;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 mahs=3;          // 牌数据 第一个表示上精 第二个表示下精
+    repeated int32 downKingScore=4; // 下翻精得分
+    repeated int32 kingcount = 5;   // 下翻正精数量
+    repeated int32 viceking = 6;    // 下翻副精数量
+    optional GX8ZSEND_TYPE notify_type=7 [default=GX8Z_NORMAL_SEND];  // 通知类型
+    optional GX8ZKING_TYPE king_type=8[default=GX8Z_KING_UP];    // 数据类型
+    repeated int32 cbChongGuang = 9;     // 冲关
+    repeated int32 cbBaWangKing = 10;     // 霸王精
+}
+
+
+/*出牌*/
+message ProGX8ZGameOutMahsResponse
+{
+    enum MSGID {ID=2211;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 outMahs=3;       // 出牌数据
+    repeated int32 handmahs=4;      // 出牌人的手牌，每次这里同步下
+    optional int32 cardCount = 5;   // 剩余手中的排数
+    optional int32 cardType = 6;    // 出牌类型
+    optional int32 cardtypeflg = 7;	// 炸弹类型
+	optional int32 cardPoint = 8;	//出牌大小
+	optional int32 seriesFlag = 9;	//出牌 连续类型
+	optional int32 seriesNums = 10;	//出牌	连续数量
+	repeated int32 noChangeMahs=11;       // 未变牌
+}
+
+/*时钟*/
+message ProGX8ZGameTimerPower
+{
+    enum MSGID {ID=2212;}
+    optional int32 seat=2;          // 座位号
+    optional int32 time=3;          // 时间
+    optional int32 outcardTime=4;     //出牌次数
+}
+
+/*操作提示*/
+message ProGX8ZGameOperateNotify
+{
+    enum MSGID {ID=2213;}
+    optional int32 resumeSeat=2;    // 还原用户
+    optional int32 ActionMask=3;    // 动作掩码
+    optional int32 ActionCard=4;    // 动作扑克
+    optional int32 time = 5;        // 操作时间
+    optional int32 operateseat=6;   // 操作座位
+}
+
+/*操作命令*/
+message ProGX8ZGameOperateResult
+{
+    enum MSGID {ID=2214;}
+    optional int32 wOperateUser=2;    // 操作用户
+    optional int32 wProvideUser=3;    // 供应用户
+    optional int32 wOperateCode=4;    // 操作代码
+    optional int32 cbOperateCard=5;   // 操作扑克
+    repeated int32 handmahs=6;        // 手牌
+    optional int32 handcount=7;       // 数量
+}
+message ProGX8ZGameOperateRequest
+{
+    enum MSGID {ID=2215;}
+    optional int32 seat=2;              // 操作用户
+    optional int32 wOperateCode=3;      // 供应用户
+    optional int32 cbOperateCard=4;     // 操作代码
+}
+
+/*托管*/
+message ProGX8ZGameTrust
+{
+    enum MSGID {ID=2216;}
+    optional int32 seat=2;              // 座位号
+    optional bool  isTrust=3;           // 是否托管
+}
+message ProGX8ZGameOutMahRequest
+{
+    enum MSGID {ID=2217;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 outMahs=3;     // 出牌数据
+	repeated int32 nochangemahs=4;     // 不变 原牌数据
+	optional bool bIsChanged=5;			//是否为变牌
+}
+// 抓牌
+message ProGX8ZGameCatchCard           
+{
+    enum MSGID {ID=2218;}
+    optional int32 seat=2;          // 座位号
+    optional int32 cbCardData=3;    // 扑克数据
+    optional int32 wActionMask=4;  //  动作掩码
+    optional bool  cbIsNotGang=5;  //  是否杠牌
+    optional int32 cbLeftCount=6;  //  剩余牌数量
+}
+
+// 游戏结束
+message GX8ZMahList
+{
+    repeated int32 Mahs = 1;
+}
+
+message GX8ZScoreList
+{
+    repeated int32 roundScore = 1;
+}
+
+message GX8ZAwardList
+{
+    optional int32 seat = 1;
+    repeated int32 CardsData = 2;
+    optional int32 awardScore = 3;
+}
+
+message ProGX8ZGameEnd
+{
+    enum MSGID {ID=2219;}
+    optional int32 lGameTax=2;           // 税收
+
+    repeated int32 cbChongGuang = 3;     // 冲关
+    repeated int32 cbBaWangKing = 4;     // 霸王精
+    optional int32 wProvideUser = 5;     // 供应用户
+    optional int32 cbChiHuCard = 6;      // 供应扑克
+    repeated int32 dwChiHuKind = 7;      // 胡牌类型
+    repeated int32 dwChiHuRight = 8;     // 胡牌类型
+
+    repeated int32 lTotaslGameScore = 9;       // 游戏总得分
+    repeated int32 lCurrentGameScore = 10;     // 当前局得分的
+    repeated int32 lCurrentPointScore = 11;    // 捡分
+    repeated int32 lAttachScore = 12;          // 其他附加分
+
+    repeated GX8ZMahList cbHandCardData = 13;    // 手牌(最后亮牌用)
+    repeated GX8ZAwardList cbAwardCardData = 14;   // 胡牌分
+    repeated int32     lOnlyWinScore=15;         // 输赢的得分(谁先出完牌,或者捡分达到一定分数)
+
+    optional bool   bRoundEnd=16;        // 这一轮是否结束了(控制是否显示分享按钮)
+    repeated int32  lHuiTouScore=17;     // 回头一笑的得分
+    optional bool   bZhuangWin=18;             //庄是否赢 
+    repeated int32 cbJiangMaCardData = 19;    // 奖码(最后亮牌用)
+    repeated GX8ZScoreList detailedScores = 20;
+
+    optional bool   bIsDaTu=21;         // 是否打途
+    optional bool   bIsKuTong=22;       // 是否窟桶
+    optional int32  nNo1Seat=23;        // 第一个出完牌的
+    optional int32  nWinerSeat=24;      // 赢家（第一个出完的不一定赢）
+    optional int32  nWinersMate=25;     // 赢牌的同伴
+    optional int32  nNo2Seat=26;        // 第二个出完牌的
+    optional int32  nNo3Seat=27;        // 第三个出完牌的
+    optional int32  nNo4Seat=28;        // 第四个出完牌的
+	optional bool 	bBroken=29;					// 是否解散
+	optional int32 	nBrokenPlayerSeat=30;		// 解散玩家座位
+	optional bool 	bSurrender=31;				// 是否投降
+	optional int32 	nSurrenderPlayerSeat=32;	// 投降玩家座位
+}
+
+message ProGX8ZGameQuickSoundRequest
+{
+    enum MSGID {ID=2220;}
+    
+    optional int32 desk_id=2;
+    optional int32 seat_id=3;
+    optional int32 sound_id = 4;    // 语音ID序号
+    optional bytes text=5;          // 聊天内容
+}
+
+// 服务器发送给客户端快速语音
+message ProGX8ZGameQuickSoundResponse
+{
+    enum MSGID {ID=2221;}
+    
+    optional int32 desk_id=2;
+    optional int32 seat_id=3;
+    optional int32 sound_id=4;
+    optional bytes text=5;          // 聊天内容
+}
+
+// 发送丢弃的牌 重连的时候会用到
+message ProGX8ZGameSendDiscardMahs
+{
+    enum MSGID {ID=2222;}
+    optional int32 seat_id=2;
+    repeated GX8ZMahList cbCardData = 3;    // 手牌
+	repeated GX8ZMahList cbNoChangeCardData = 4;    // 未变手牌
+    optional int32 deskCount=5;         // 牌桌剩余牌数量
+	repeated int32 outCardCount=6;		// 出牌次数
+}
+
+message GX8ZWeaveItem
+{
+    optional int32 weaveKind = 1;
+    optional int32 centercard = 2;
+    optional int32 provideUser = 3;
+    optional int32 cardsize = 4;
+}
+message GX8ZWeaveItems
+{
+    repeated GX8ZWeaveItem items = 1;
+}
+// 发送吃碰杠的牌 重连的时候会用到
+message ProGX8ZGameSendActionMahs
+{
+    enum MSGID {ID=2223;}
+    optional int32 seat_id=2;
+    repeated GX8ZWeaveItems weaves = 3;    // 手牌
+}
+
+enum GX8ZBROKEN_TYPE
+{
+    GX8Z_BT_MASTER_QUIT=0;       // 房间退出(游戏没有开始过)
+    GX8Z_BT_USER_QUIT=1;        //  用户退出(游戏没有开始过)
+    GX8Z_BT_BROKEN=2;           //  普通解散
+    
+}
+// 申请解散游戏
+message ProGX8ZGameBrokenRequest
+{
+    enum MSGID {ID=2224;}
+    optional int32 seat_id=2;
+    optional GX8ZBROKEN_TYPE type=3;
+    optional int32 time=4;          // 对话框显示的倒计时时间 单位秒
+}
+
+enum GX8ZBROKEN_OPERATE
+{
+    GX8Z_BO_DISAGREE=0;   // 拒绝
+    GX8Z_BO_AGREE=1;      // 同意
+}
+
+// 操作申请
+message ProGX8ZGameBrokenOperate
+{
+    enum MSGID {ID=2225;}
+    optional int32 seat_id=2;
+    optional GX8ZBROKEN_OPERATE result=3[default=GX8Z_BO_DISAGREE];      // 操作结果
+}
+enum GX8ZBROKEN_CODE
+{
+    GX8Z_BC_SUCCESS=0;            // 解散成功
+    GX8Z_BC_DISAGREE=1;          // 有人不同意解散
+    GX8Z_BC_QUIT_SUCCESS=2;      // 退出成功
+    GX8Z_BC_EXCEPTION=3;         // 数据异常 解散
+}
+// 游戏解散
+message ProGX8ZGameBrokenNotify
+{
+    enum MSGID {ID=2226;}
+    optional int32 seat_id=2;             // 当有人不同意解散时 才需要处理这个字段
+    optional GX8ZBROKEN_CODE operate_code=3[default=GX8Z_BC_SUCCESS];
+
+}
+
+// 游戏规则配置
+message ProGX8ZGameRuleConfig
+{
+    enum MSGID{ID=2227;}
+    optional int32 game_round=1;        // 游戏局数
+    optional int32 need_card=2;         // 需要房卡数量
+    optional bool  have_bottom_king=3;  // 是否下翻精
+    optional bool  have_mai_lei=4;      // 是否埋雷
+    optional bool  hava_hui_tou=5;      // 是否回头一笑
+    optional int32 nMasterSeat=6;       // 规则设置着座位(也就是房主了)
+    optional int32 current_game_count=7;// 当前的游戏局数 S->C有用  C->S不需要这个参数
+    optional bool  have_jianma=8;      // 是否奖码
+    optional int32 nChongguanNum=9;       // 冲关个数
+    optional bool  bbawangfanbei=10;      // 是否霸王翻倍
+    optional int32 nPlayerNum =11;			// 玩家人数
+	optional bytes sRoomNum=12;      // 房号
+    optional bytes sPlayTime=13;      // 游戏时间
+    optional int32 gametype=14;
+	
+	optional bool  isJingDian=15;	//玩法经典or亮奖
+	optional bool  isOpenTeammate=16;	//玩法 是否明选队友
+}
+
+// 游戏解散状态广播
+message ProGX8ZGameBrokenStatus
+{
+    enum MSGID{ID=2228;}
+    optional int32 broken_seat=1;       // 解散申请者
+    repeated bool  broken_status=2;     // 状态服务端座位0开始 true表示同意 false 表示默认未选择
+    optional int32 left_time=3;         // 剩余时间倒计时(单位:秒)
+}
+
+// 游戏奖分数据
+message ProGX8ZGameDataResp
+{
+    enum MSGID{ID=2229;}
+    repeated int32  total_score = 1;     // 游戏的总分,重连的时候会用到
+    optional int32  type  = 2;           // 分值类型
+}
+
+
+
+// 请求发送录音内容
+message ProGX8ZGameRecordRequest
+{
+    enum MSGID {ID=2230;}
+    optional int32 seat_id=1;
+    optional bytes url=2;                   //  语音地址
+}
+
+// 录音URL广播给其他玩家
+message ProGX8ZGameRecordResponse
+{
+    enum MSGID {ID=2231;}
+    optional int32 seat_id=1;
+    optional bytes url=2;                   // 语音地址
+}
+
+// 报告经纬坐标
+message ProGX8ZGameUserLocationRequest
+{
+    enum MSGID {ID=2232;}
+    optional int32  seat_id=1;              //  座位号
+    optional double dwlongitude=2;          //  经度
+    optional double dwlatitude=3;           //  纬度
+    optional bytes  strDistrict=4;          //  区
+    optional bytes  strStreetName=5;        //  道路名
+}
+
+//同步牌数据//九江麻将新增的,在不发财和杠牌的时候需要显示
+message ProGX8ZGameSyncCardResponse
+{
+    enum MSGID {ID=2233;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 handmahs=3;      // 出牌人的手牌，每次这里同步下
+}
+
+//监听判断玩家状态
+message ProGX8ZGameUserPhoneStatusRequest
+{
+    enum MSGID {ID=2234;}
+    optional int32 seat_id=1;              // 座位号
+    optional int32 userstatus = 2;         // 玩家状态
+}
+
+//庄家投降
+message ProGX8ZGameUserGiveUpRequest
+{
+    enum MSGID {ID=2235;}
+    optional int32 seat_id=1;              // 座位号
+}
+
+
+message ProGX8ZGameUserHintRequest
+{
+    enum MSGID {ID=2236;}
+}
+
+//提示
+message ProGX8ZGameUserHintResponse
+{
+    enum MSGID {ID=2237;}
+    optional int32 lenth=1;                 // 牌的张数
+    repeated int32 outMahs=2;               // 提示出的牌
+}
+
+//独打
+message ProGX8ZGameUserDaTuNotify
+{
+    enum MSGID {ID=2238;}
+    optional int32 seat=1;
+}
+
+//找队友
+message ProGX8ZGameUserTeammateRequest
+{
+    enum MSGID {ID=2239;}
+    optional int32 bankerMateSeat=1;
+    optional int32 mateCard=2;
+}
+
+// 打图请求
+message ProGX8ZGameUserDaTuRequest
+{
+    enum MSGID {ID=2240;}
+    optional int32 seat=1;
+    optional bool bIsDaTu=2;
+}
+
+// 打图结果
+message ProGX8ZGameUserDaTuResponse
+{
+    enum MSGID {ID=2241;}
+    optional int32 seat=1;
+    optional bool bIsDaTu=2;
+    optional int32 nextSeat=3;
+}
+
+// 打图结果
+message ProGX8ZGameUserDaTuResult
+{
+    enum MSGID {ID=2242;}
+    optional int32 seat=1;
+    optional bool bIsDaTu=2;
+}
+
+message ProGX8ZGameShangYouResult
+{
+    enum MSGID {ID=2243;}
+    repeated int32 shangyouSeat=1;
+}
+
+message ProGX8ZGameShowFriendNotify
+{
+    enum MSGID {ID=2244;}
+    optional bool bShow=1;
+}
+
+message ProGX8ZGameBoomNumNotify
+{
+    enum MSGID {ID=2245;}
+    optional int32 nSeat=1;
+    optional int32 nBoomNum=2;
+}
+
+// 亮炸数据请求
+message ProGX8ZGameShowBoomDataRequest
+{
+    enum MSGID {ID=2246;}
+    optional int32 nSeat=1;
+}
+
+// 亮炸数据响应
+message ProGX8ZGameShowBoomDataResponse
+{
+    enum MSGID {ID=2247;}
+    optional int32 nSeat=1;
+    optional bool bIsSendToAll=2;
+    repeated GX8ZAwardList cbAwardCardData = 3;   // 奖分牌
+}
+
+// 赖子牌，牌型选择消息
+message ProGX8ZGameCardTypeSelect
+{
+    enum MSGID {ID=2248;}
+    optional int32 nSeat=1;
+    repeated GX8ZMahList CardTypeSelectData = 2;   // 牌型选择列表
+}
+
+// 是否投降选择
+message ProGX8ZGameIsSurrenderSelect
+{
+    enum MSGID {ID=2249;}
+    optional int32 nSeat=1;						
+}
+
+// 是否投降选择 玩家操作
+ message ProGX8ZGameIsSurrenderOperate
+{
+    enum MSGID {ID=2250;}
+    optional int32 nSeat=1;		
+    optional bool bIsSurrender=2;					
+}
+
+// 是否同意投降选择 通知
+message ProGX8ZGameIsAgreeSurrenderSelect
+{
+    enum MSGID {ID=2251;}	
+	optional int32 nSurrenderSeat=1;		
+}
+
+// 是否同意投降选择 玩家操作
+message ProGX8ZGameIsAgreeSurrenderOperate
+{
+    enum MSGID {ID=2252;}
+    optional int32 nSeat=1;		
+    optional bool bIsAgreeSurrender=2;					
+}
+
+// 是否同意投降 情况更新
+message ProGX8ZGameIsAgreeSurrenderStatus
+{
+    enum MSGID {ID=2253;}
+	optional int32 nSeat=1;	
+    optional bool  bIsAgreeSurrender=2;				
+}
+
+// 投降 结果
+message ProGX8ZGameSurrenderResult
+{
+    enum MSGID {ID=2254;}
+    optional bool  bSurrenderResult=1;		
+}
+
+// 亮炸 通知
+message ProGX8ZGameShowBoomNotify
+{
+    enum MSGID {ID=2255;}
+}
+
+// 亮炸 操作
+message ProGX8ZGameShowBoomOperate
+{
+    enum MSGID {ID=2256;}
+    optional int32 nSeat=1;		
+}
+
+// 亮炸 响应
+message ProGX8ZGameShowBoomResponse
+{
+    enum MSGID {ID=2257;}
+    optional int32 nSeat=1;		
+	optional int32 AwardScore=2;	
+}

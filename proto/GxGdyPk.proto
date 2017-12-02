@@ -1,0 +1,623 @@
+import "base.proto";
+// 贵溪干瞪眼游戏协议
+// 2200~2399之间协议段
+// 本游戏协议必须指定目的服务器ID
+
+/* 贵溪干瞪眼游戏结构体定义 */
+enum GXGDYGameState
+{
+    GXGDY_GAME_IDLE=1;            // 空闲，游戏逻辑未开始，等待玩家准备。
+    GXGDY_GAME_DICE_BANK=2;       // 摇筛子(庄)
+    GXGDY_GAME_SEND=3;            // 发牌
+    GXGDY_GAME_DATU=4;            // 打图通知
+    GXGDY_GAME_PLAY=6;            // 游戏
+    GXGDY_GAME_END=7;             // 游戏结束
+}
+
+enum GXGDYSEND_TYPE
+{
+    GXGDY_NORMAL_SEND=1;   // 正常
+    GXGDY_RECOME_SEND=2;   // 重连
+}
+
+
+/*游戏状态*/
+message ProGXGDYGameStatusResponse
+{
+    enum MSGID {ID=2200;}
+    optional GXGDYGameState status=2;     // 状态
+}
+
+/*游戏的底分*/
+message ProGXGDYGameDeskInfoResponse
+{
+    enum MSGID {ID=2201;}
+    optional int32 CellScore=2;     // 底分
+}
+
+/*通知准备*/
+message ProGXGDYGameReadyNotify
+{
+    enum MSGID {ID=2202;}
+    optional int32 seat=2;          // 准备座位
+    optional int32 time=3;          // 准备时间
+}
+
+/*请求准备*/
+message ProGXGDYGameReadyRequest
+{
+    enum MSGID {ID=2203;}
+    optional int32 seat=2;          // 准备座位
+}
+
+/*请求准备通知*/
+message ProGXGDYGameReadyResponse
+{
+    enum MSGID {ID=2204;}
+    optional int32 seat=2;          // 准备座位
+}
+
+/*通知游戏开始了客户端做一些清理准备*/
+message ProGXGDYGameStart
+{
+    enum MSGID {ID=2205;}
+    optional int32 bankerseat=2;     // 庄家座位号
+    optional int32 gamecount=3;      // 当前的局数
+    optional int32 outCardtimes=4;      // 出牌次数
+}
+/*选庄和选精的都用这个协议，通过状态来判断*/
+/*通知掷骰子*/
+message ProGXGDYGameDiceNotify
+{
+    enum MSGID {ID=2206;}
+    optional int32 seat=2;          // 座位号
+    optional int32 time=3;          // 时间
+    optional int32 dicecount = 4;   // 第几次摇筛子
+}
+
+/*请求掷骰子,客户端已经操作了*/
+message ProGXGDYGameDiceRequest
+{
+    enum MSGID {ID=2207;}
+    optional int32 seat=2;          // 座位号
+    optional int32 dicecount = 3;   // 第几次摇筛子
+}
+
+/*广播掷骰子*/
+message ProGXGDYGameDiceResult
+{
+    enum MSGID {ID=2208;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 result=3;        // 筛子结果
+    optional int32 dicecount = 4;   // 第几次摇筛子
+}
+
+/*发牌*/
+message ProGXGDYGameSendMahs
+{
+    enum MSGID {ID=2209;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 mahs=3;          // 牌数据
+    repeated int32 mahscount=4;     // 所有人的牌数量
+    optional int32 cbLeftCount=5;  //  剩余牌数量
+}
+
+enum GXGDYKING_TYPE
+{
+    GXGDY_KING_UP    =1;   // 上精
+    GXGDY_KING_HUITOU=2;   // 回头一笑
+    GXGDY_KING_MAILEI=3;   // 埋雷
+}
+
+/*精数据*/
+message ProGXGDYGameKingData
+{
+    enum MSGID {ID=2210;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 mahs=3;          // 牌数据 第一个表示上精 第二个表示下精
+    repeated int32 downKingScore=4; // 下翻精得分
+    repeated int32 kingcount = 5;   // 下翻正精数量
+    repeated int32 viceking = 6;    // 下翻副精数量
+    optional GXGDYSEND_TYPE notify_type=7 [default=GXGDY_NORMAL_SEND];  // 通知类型
+    optional GXGDYKING_TYPE king_type=8[default=GXGDY_KING_UP];    // 数据类型
+    repeated int32 cbChongGuang = 9;     // 冲关
+    repeated int32 cbBaWangKing = 10;     // 霸王精
+}
+
+
+/*出牌*/
+message ProGXGDYGameOutMahsResponse
+{
+    enum MSGID {ID=2211;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 outMahs=3;       // 出牌数据
+    repeated int32 handmahs=4;      // 出牌人的手牌，每次这里同步下
+    optional int32 cardCount = 5;   // 剩余手中的排数
+    optional int32 cardType = 6;    // 出牌类型
+    optional int32 cardtypeflg = 7;	// 炸弹类型
+	optional int32 cardPoint = 8;	//出牌大小
+	optional int32 seriesFlag = 9;	//出牌 连续类型
+	optional int32 seriesNums = 10;	//出牌	连续数量
+	repeated int32 noChangeMahs=11;       // 未变牌
+}
+
+/*时钟*/
+message ProGXGDYGameTimerPower
+{
+    enum MSGID {ID=2212;}
+    optional int32 seat=2;          // 座位号
+    optional int32 time=3;          // 时间
+    optional int32 outcardTime=4;     //出牌次数
+}
+
+/*操作提示*/
+message ProGXGDYGameOperateNotify
+{
+    enum MSGID {ID=2213;}
+    optional int32 resumeSeat=2;    // 还原用户
+    optional int32 ActionMask=3;    // 动作掩码
+    optional int32 ActionCard=4;    // 动作扑克
+    optional int32 time = 5;        // 操作时间
+    optional int32 operateseat=6;   // 操作座位
+}
+
+/*操作命令*/
+message ProGXGDYGameOperateResult
+{
+    enum MSGID {ID=2214;}
+    optional int32 wOperateUser=2;    // 操作用户
+    optional int32 wProvideUser=3;    // 供应用户
+    optional int32 wOperateCode=4;    // 操作代码
+    optional int32 cbOperateCard=5;   // 操作扑克
+    repeated int32 handmahs=6;        // 手牌
+    optional int32 handcount=7;       // 数量
+}
+message ProGXGDYGameOperateRequest
+{
+    enum MSGID {ID=2215;}
+    optional int32 seat=2;              // 操作用户
+    optional int32 wOperateCode=3;      // 供应用户
+    optional int32 cbOperateCard=4;     // 操作代码
+}
+
+/*托管*/
+message ProGXGDYGameTrust
+{
+    enum MSGID {ID=2216;}
+    optional int32 seat=2;              // 座位号
+    optional bool  isTrust=3;           // 是否托管
+}
+message ProGXGDYGameOutMahRequest
+{
+    enum MSGID {ID=2217;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 outMahs=3;     // 出牌数据
+	repeated int32 nochangemahs=4;     // 不变 原牌数据
+	optional bool bIsChanged=5;			//是否为变牌
+}
+// 抓牌
+message ProGXGDYGameCatchCard           
+{
+    enum MSGID {ID=2218;}
+    optional int32 seat=2;          // 座位号
+    optional int32 cbCardData=3;    // 扑克数据
+    optional int32 wActionMask=4;  //  动作掩码
+    optional bool  cbIsNotGang=5;  //  是否杠牌
+    optional int32 cbLeftCount=6;  //  剩余牌数量
+}
+
+// 游戏结束
+message GXGDYMahList
+{
+    repeated int32 Mahs = 1;
+}
+
+message GXGDYScoreList
+{
+    repeated int32 roundScore = 1;
+}
+
+message GXGDYAwardList
+{
+    optional int32 seat = 1;
+    repeated int32 CardsData = 2;
+    optional int32 awardScore = 3;
+}
+
+message ProGXGDYGameEnd
+{
+    enum MSGID {ID=2219;}
+    optional int32 lGameTax=2;           // 税收
+
+    repeated int32 cbChongGuang = 3;     // 冲关
+    repeated int32 cbBaWangKing = 4;     // 霸王精
+    optional int32 wProvideUser = 5;     // 供应用户
+    optional int32 cbChiHuCard = 6;      // 供应扑克
+    repeated int32 dwChiHuKind = 7;      // 胡牌类型
+    repeated int32 dwChiHuRight = 8;     // 胡牌类型
+
+    repeated int32 lTotaslGameScore = 9;       // 游戏总得分
+    repeated int32 lCurrentGameScore = 10;     // 当前局得分的
+    repeated int32 lCurrentPointScore = 11;    // 捡分
+    repeated int32 lAttachScore = 12;          // 其他附加分 奖分
+
+    repeated GXGDYMahList cbHandCardData = 13;    // 手牌(最后亮牌用)
+    repeated GXGDYAwardList cbAwardCardData = 14;   // 胡牌分
+    repeated int32     lOnlyWinScore=15;         // 输赢的得分(谁先出完牌,或者捡分达到一定分数)
+
+    optional bool   bRoundEnd=16;        // 这一轮是否结束了(控制是否显示分享按钮)
+    repeated int32  lHuiTouScore=17;     // 回头一笑的得分
+    optional bool   bZhuangWin=18;             //庄是否赢 
+    repeated int32 cbJiangMaCardData = 19;    // 奖码(最后亮牌用)
+    repeated GXGDYScoreList detailedScores = 20;
+
+    optional bool   bIsDaTu=21;         // 是否打途
+    optional bool   bIsKuTong=22;       // 是否窟桶
+    optional int32  nNo1Seat=23;        // 第一个出完牌的
+    optional int32  nWinerSeat=24;      // 赢家（第一个出完的不一定赢）
+    optional int32  nWinersMate=25;     // 赢牌的同伴
+    optional int32  nNo2Seat=26;        // 第二个出完牌的
+    optional int32  nNo3Seat=27;        // 第三个出完牌的
+    optional int32  nNo4Seat=28;        // 第四个出完牌的
+	optional bool 	bBroken=29;					// 是否解散
+	optional int32 	nBrokenPlayerSeat=30;		// 解散玩家座位
+	optional bool 	bSurrender=31;				// 是否投降
+	optional int32 	nSurrenderPlayerSeat=32;	// 投降玩家座位
+	repeated bool 	bIsSpring=33;				// 是否春天
+	repeated int32 	nSurplusCardCount=34;		// 剩余牌数量
+}
+
+message ProGXGDYGameQuickSoundRequest
+{
+    enum MSGID {ID=2220;}
+    
+    optional int32 desk_id=2;
+    optional int32 seat_id=3;
+    optional int32 sound_id = 4;    // 语音ID序号
+    optional bytes text=5;          // 聊天内容
+}
+
+// 服务器发送给客户端快速语音
+message ProGXGDYGameQuickSoundResponse
+{
+    enum MSGID {ID=2221;}
+    
+    optional int32 desk_id=2;
+    optional int32 seat_id=3;
+    optional int32 sound_id=4;
+    optional bytes text=5;          // 聊天内容
+}
+
+// 发送丢弃的牌 重连的时候会用到
+message ProGXGDYGameSendDiscardMahs
+{
+    enum MSGID {ID=2222;}
+    optional int32 seat_id=2;
+    repeated GXGDYMahList cbCardData = 3;    // 手牌
+	repeated GXGDYMahList cbNoChangeCardData = 4;    // 未变手牌
+    optional int32 deskCount=5;         // 牌桌剩余牌数量
+	repeated int32 outCardCount=6;		// 出牌次数
+}
+
+message GXGDYWeaveItem
+{
+    optional int32 weaveKind = 1;
+    optional int32 centercard = 2;
+    optional int32 provideUser = 3;
+    optional int32 cardsize = 4;
+}
+message GXGDYWeaveItems
+{
+    repeated GXGDYWeaveItem items = 1;
+}
+// 发送吃碰杠的牌 重连的时候会用到
+message ProGXGDYGameSendActionMahs
+{
+    enum MSGID {ID=2223;}
+    optional int32 seat_id=2;
+    repeated GXGDYWeaveItems weaves = 3;    // 手牌
+}
+
+enum GXGDYBROKEN_TYPE
+{
+    GXGDY_BT_MASTER_QUIT=0;       // 房间退出(游戏没有开始过)
+    GXGDY_BT_USER_QUIT=1;        //  用户退出(游戏没有开始过)
+    GXGDY_BT_BROKEN=2;           //  普通解散
+    
+}
+// 申请解散游戏
+message ProGXGDYGameBrokenRequest
+{
+    enum MSGID {ID=2224;}
+    optional int32 seat_id=2;
+    optional GXGDYBROKEN_TYPE type=3;
+    optional int32 time=4;          // 对话框显示的倒计时时间 单位秒
+}
+
+enum GXGDYBROKEN_OPERATE
+{
+    GXGDY_BO_DISAGREE=0;   // 拒绝
+    GXGDY_BO_AGREE=1;      // 同意
+}
+
+// 操作申请
+message ProGXGDYGameBrokenOperate
+{
+    enum MSGID {ID=2225;}
+    optional int32 seat_id=2;
+    optional GXGDYBROKEN_OPERATE result=3[default=GXGDY_BO_DISAGREE];      // 操作结果
+}
+enum GXGDYBROKEN_CODE
+{
+    GXGDY_BC_SUCCESS=0;            // 解散成功
+    GXGDY_BC_DISAGREE=1;          // 有人不同意解散
+    GXGDY_BC_QUIT_SUCCESS=2;      // 退出成功
+    GXGDY_BC_EXCEPTION=3;         // 数据异常 解散
+}
+// 游戏解散
+message ProGXGDYGameBrokenNotify
+{
+    enum MSGID {ID=2226;}
+    optional int32 seat_id=2;             // 当有人不同意解散时 才需要处理这个字段
+    optional GXGDYBROKEN_CODE operate_code=3[default=GXGDY_BC_SUCCESS];
+
+}
+
+// 游戏规则配置
+message ProGXGDYGameRuleConfig
+{
+    enum MSGID{ID=2227;}
+    optional int32 game_round=1;        // 游戏局数
+    optional int32 need_card=2;         // 需要房卡数量
+    optional bool  have_bottom_king=3;  // 是否下翻精
+    optional bool  have_mai_lei=4;      // 是否埋雷
+    optional bool  hava_hui_tou=5;      // 是否回头一笑
+    optional int32 nMasterSeat=6;       // 规则设置着座位(也就是房主了)
+    optional int32 current_game_count=7;// 当前的游戏局数 S->C有用  C->S不需要这个参数
+    optional bool  have_jianma=8;      // 是否奖码
+    optional int32 nChongguanNum=9;       // 冲关个数
+    optional bool  bbawangfanbei=10;      // 是否霸王翻倍
+    optional int32 nPlayerNum =11;			// 玩家人数
+	optional bytes sRoomNum=12;      // 房号
+    optional bytes sPlayTime=13;      // 游戏时间
+    optional int32 gametype=14;
+	
+	optional bool  isJingDian=15;	//玩法经典or亮奖
+	optional bool  isOpenTeammate=16;	//玩法 是否明选队友
+	
+	optional bool  bIsSendSingleCard=17;	//干瞪眼 是否单发补牌
+	optional int32  nMultipleTop=18;	//干瞪眼 封顶倍数
+}
+
+// 游戏解散状态广播
+message ProGXGDYGameBrokenStatus
+{
+    enum MSGID{ID=2228;}
+    optional int32 broken_seat=1;       // 解散申请者
+    repeated bool  broken_status=2;     // 状态服务端座位0开始 true表示同意 false 表示默认未选择
+    optional int32 left_time=3;         // 剩余时间倒计时(单位:秒)
+}
+
+// 游戏奖分数据
+message ProGXGDYGameDataResp
+{
+    enum MSGID{ID=2229;}
+    repeated int32  total_score = 1;     // 游戏的总分,重连的时候会用到
+    optional int32  type  = 2;           // 分值类型
+}
+
+
+
+// 请求发送录音内容
+message ProGXGDYGameRecordRequest
+{
+    enum MSGID {ID=2230;}
+    optional int32 seat_id=1;
+    optional bytes url=2;                   //  语音地址
+}
+
+// 录音URL广播给其他玩家
+message ProGXGDYGameRecordResponse
+{
+    enum MSGID {ID=2231;}
+    optional int32 seat_id=1;
+    optional bytes url=2;                   // 语音地址
+}
+
+// 报告经纬坐标
+message ProGXGDYGameUserLocationRequest
+{
+    enum MSGID {ID=2232;}
+    optional int32  seat_id=1;              //  座位号
+    optional double dwlongitude=2;          //  经度
+    optional double dwlatitude=3;           //  纬度
+    optional bytes  strDistrict=4;          //  区
+    optional bytes  strStreetName=5;        //  道路名
+}
+
+//同步牌数据//九江麻将新增的,在不发财和杠牌的时候需要显示
+message ProGXGDYGameSyncCardResponse
+{
+    enum MSGID {ID=2233;}
+    optional int32 seat=2;          // 座位号
+    repeated int32 handmahs=3;      // 出牌人的手牌，每次这里同步下
+}
+
+//监听判断玩家状态
+message ProGXGDYGameUserPhoneStatusRequest
+{
+    enum MSGID {ID=2234;}
+    optional int32 seat_id=1;              // 座位号
+    optional int32 userstatus = 2;         // 玩家状态
+}
+
+//庄家投降
+message ProGXGDYGameUserGiveUpRequest
+{
+    enum MSGID {ID=2235;}
+    optional int32 seat_id=1;              // 座位号
+}
+
+
+message ProGXGDYGameUserHintRequest
+{
+    enum MSGID {ID=2236;}
+	optional bool bIsUserRequest=1; 		//是否来自用户的请求
+}
+
+//提示
+message ProGXGDYGameUserHintResponse
+{
+    enum MSGID {ID=2237;}
+    optional int32 lenth=1;                 // 牌的张数
+    repeated int32 outMahs=2;               // 提示出的牌
+}
+
+//独打
+message ProGXGDYGameUserDaTuNotify
+{
+    enum MSGID {ID=2238;}
+    optional int32 seat=1;
+}
+
+//找队友
+message ProGXGDYGameUserTeammateRequest
+{
+    enum MSGID {ID=2239;}
+    optional int32 bankerMateSeat=1;
+    optional int32 mateCard=2;
+}
+
+// 打图请求
+message ProGXGDYGameUserDaTuRequest
+{
+    enum MSGID {ID=2240;}
+    optional int32 seat=1;
+    optional bool bIsDaTu=2;
+}
+
+// 打图结果
+message ProGXGDYGameUserDaTuResponse
+{
+    enum MSGID {ID=2241;}
+    optional int32 seat=1;
+    optional bool bIsDaTu=2;
+    optional int32 nextSeat=3;
+}
+
+// 打图结果
+message ProGXGDYGameUserDaTuResult
+{
+    enum MSGID {ID=2242;}
+    optional int32 seat=1;
+    optional bool bIsDaTu=2;
+}
+
+message ProGXGDYGameShangYouResult
+{
+    enum MSGID {ID=2243;}
+    repeated int32 shangyouSeat=1;
+}
+
+message ProGXGDYGameShowFriendNotify
+{
+    enum MSGID {ID=2244;}
+    optional bool bShow=1;
+}
+
+message ProGXGDYGameBoomNumNotify
+{
+    enum MSGID {ID=2245;}
+    optional int32 nSeat=1;
+    optional int32 nBoomNum=2;
+}
+
+// 亮炸数据请求
+message ProGXGDYGameShowBoomDataRequest
+{
+    enum MSGID {ID=2246;}
+    optional int32 nSeat=1;
+}
+
+// 亮炸数据响应
+message ProGXGDYGameShowBoomDataResponse
+{
+    enum MSGID {ID=2247;}
+    optional int32 nSeat=1;
+    optional bool bIsSendToAll=2;
+    repeated GXGDYAwardList cbAwardCardData = 3;   // 奖分牌
+}
+
+// 赖子牌，牌型选择消息
+message ProGXGDYGameCardTypeSelect
+{
+    enum MSGID {ID=2248;}
+    optional int32 nSeat=1;
+    repeated GXGDYMahList CardTypeSelectData = 2;   // 牌型选择列表
+}
+
+// 是否投降选择
+message ProGXGDYGameIsSurrenderSelect
+{
+    enum MSGID {ID=2249;}
+    optional int32 nSeat=1;						
+}
+
+// 是否投降选择 玩家操作
+ message ProGXGDYGameIsSurrenderOperate
+{
+    enum MSGID {ID=2250;}
+    optional int32 nSeat=1;		
+    optional bool bIsSurrender=2;					
+}
+
+// 是否同意投降选择 通知
+message ProGXGDYGameIsAgreeSurrenderSelect
+{
+    enum MSGID {ID=2251;}	
+	optional int32 nSurrenderSeat=1;		
+}
+
+// 是否同意投降选择 玩家操作
+message ProGXGDYGameIsAgreeSurrenderOperate
+{
+    enum MSGID {ID=2252;}
+    optional int32 nSeat=1;		
+    optional bool bIsAgreeSurrender=2;					
+}
+
+// 是否同意投降 情况更新
+message ProGXGDYGameIsAgreeSurrenderStatus
+{
+    enum MSGID {ID=2253;}
+	optional int32 nSeat=1;	
+    optional bool  bIsAgreeSurrender=2;				
+}
+
+// 投降 结果
+message ProGXGDYGameSurrenderResult
+{
+    enum MSGID {ID=2254;}
+    optional bool  bSurrenderResult=1;		
+}
+
+// 亮炸 通知
+message ProGXGDYGameShowBoomNotify
+{
+    enum MSGID {ID=2255;}
+}
+
+// 亮炸 操作
+message ProGXGDYGameShowBoomOperate
+{
+    enum MSGID {ID=2256;}
+    optional int32 nSeat=1;		
+}
+
+// 亮炸 响应
+message ProGXGDYGameShowBoomResponse
+{
+    enum MSGID {ID=2257;}
+    optional int32 nSeat=1;		
+	optional int32 AwardScore=2;	
+}
